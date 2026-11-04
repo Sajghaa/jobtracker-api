@@ -25,5 +25,6 @@ class ApplicationResponse(BaseModel):
     resume_filename: Optional[str]
     user_id: int
 
+
     class Config:
         from_attributes = True
