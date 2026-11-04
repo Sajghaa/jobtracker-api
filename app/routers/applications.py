@@ -8,6 +8,11 @@ from app.models.user import User
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse
 from app.core.dependencies import get_current_user
 
+import shutil
+import os
+from fastapi import File, UploadFile
+
+
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
 @router.post("/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
@@ -88,3 +93,34 @@ def delete_application(
     db.delete(app)
     db.commit()
     return None
+
+@router.post("/{app_id}/resume", response_model=ApplicationResponse)
+def upload_resume(
+    app_id: int,
+    file: UploadFile = File(...), 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    app_record = db.query(Application).filter(
+        Application.id == app_id, 
+        Application.user_id == current_user.id
+    ).first()
+    
+    if not app_record:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+    
+    file_extension = os.path.splitext(file.filename)[1]
+    unique_filename = f"user_{current_user.id}_app_{app_id}{file_extension}"
+    file_path = os.path.join("uploads", unique_filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    app_record.resume_filename = unique_filename
+    db.commit()
+    db.refresh(app_record)
+    
+    return app_record
