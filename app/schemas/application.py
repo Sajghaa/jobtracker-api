@@ -22,6 +22,7 @@ class ApplicationResponse(BaseModel):
     status: ApplicationStatus
     applied_date: datetime
     notes: Optional[str]
+    resume_filename: Optional[str]
     user_id: int
 
     class Config:
