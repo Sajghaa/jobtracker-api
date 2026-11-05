@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -18,8 +18,9 @@ router = APIRouter(prefix="/applications", tags=["Applications"])
 @router.post("/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
 def create_application(
     app_in: ApplicationCreate, 
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # 🔒 LOCKED
+    current_user: User = Depends(get_current_user) 
 ):
     new_app = Application(
         **app_in.model_dump(),
@@ -28,6 +29,11 @@ def create_application(
     db.add(new_app)
     db.commit()
     db.refresh(new_app)
+    background_tasks.add_task(
+        send_follow_up_reminder,
+        email=current_user.email,
+        company=new_app.company_name
+    )
     return new_app
 
 @router.get("/", response_model=List[ApplicationResponse])
@@ -124,3 +130,9 @@ def upload_resume(
     db.refresh(app_record)
     
     return app_record
+
+
+def send_follow_up_reminder(email: str, company: str):
+    import time
+    time.sleep(3)
+    print(f"\n📧 [BACKGROUND TASK] Email sent to {email}: Don't forget to follow up with {company}!\n")
