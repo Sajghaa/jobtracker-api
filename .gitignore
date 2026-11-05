@@ -1,5 +1,6 @@
-# Virtual environ
-/ss_venv
+# Virtual environment
+ss_venv/
+venv/
 
 # Python cache
 __pycache__/
@@ -8,3 +9,5 @@ __pycache__/
 # IDE files
 .vscode/
 .idea/
+
+uploads/
