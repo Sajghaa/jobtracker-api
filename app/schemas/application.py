@@ -28,3 +28,11 @@ class ApplicationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ApplicationStats(BaseModel):
+    total_applications: int
+    applied: int
+    interviewing: int
+    offer: int
+    rejected: int
+    withdrawn: int
