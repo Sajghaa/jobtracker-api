@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.db.database import get_db
-from app.models.application import Application
+from app.models.application import Application, ApplicationStatus
 from app.models.user import User
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse
 from app.core.dependencies import get_current_user
@@ -36,13 +36,29 @@ def create_application(
     )
     return new_app
 
+
 @router.get("/", response_model=List[ApplicationResponse])
 def get_my_applications(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # 🔒 LOCKED
+    current_user: User = Depends(get_current_user),
+   
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(10, ge=1, le=100, description="Max records to return (max 100)"),
+    
+    app_status: Optional[ApplicationStatus] = Query(None, alias="status", description="Filter by application status"),
+    company: Optional[str] = Query(None, description="Search by company name (case-insensitive)")
 ):
-    apps = db.query(Application).filter(Application.user_id == current_user.id).all()
-    return apps
+    query = db.query(Application).filter(Application.user_id == current_user.id)
+    
+    if app_status:
+        query = query.filter(Application.status == app_status)
+        
+    if company:
+        query = query.filter(Application.company_name.ilike(f"%{company}%"))
+        
+    applications = query.offset(skip).limit(limit).all()
+    
+    return applications
 
 @router.get("/{app_id}", response_model=ApplicationResponse)
 def get_application(
