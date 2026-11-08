@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 
 from app.db.database import get_db
 from app.models.application import Application, ApplicationStatus
 from app.models.user import User
-from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse
+from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationStats
 from app.core.dependencies import get_current_user
 
 import shutil
@@ -60,11 +61,44 @@ def get_my_applications(
     
     return applications
 
+@router.get("/stats", response_model=ApplicationStats)
+def get_application_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    results = db.query(
+        Application.status, 
+        func.count(Application.id)
+    ).filter(
+        Application.user_id == current_user.id
+    ).group_by(
+        Application.status
+    ).all()
+    
+    stats = {
+        "applied": 0,
+        "interviewing": 0,
+        "offer": 0,
+        "rejected": 0,
+        "withdrawn": 0
+    }
+    
+    total = 0
+    for status_enum, count in results:
+        stats[status_enum.value] = count
+        total += count
+        
+    return {
+        "total_applications": total,
+        **stats
+    }
+
 @router.get("/{app_id}", response_model=ApplicationResponse)
 def get_application(
     app_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # 🔒 LOCKED
+    current_user: User = Depends(get_current_user) 
 ):
     app = db.query(Application).filter(
         Application.id == app_id, 
@@ -75,12 +109,15 @@ def get_application(
         raise HTTPException(status_code=404, detail="Application not found")
     return app
 
+
+
+
 @router.put("/{app_id}", response_model=ApplicationResponse)
 def update_application(
     app_id: int,
     app_in: ApplicationUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # 🔒 LOCKED
+    current_user: User = Depends(get_current_user) 
 ):
     app = db.query(Application).filter(
         Application.id == app_id, 
