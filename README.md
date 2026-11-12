@@ -1,5 +1,8 @@
 # Job Tracker API
 
+
+**Live API Documentation:** [Interactive Swagger UI](https://jobtracker-api-k18g.onrender.com/docs)
+
 A backend project for a job-tracking application, built with FastAPI and SQLAlchemy.
 
 > **Project status:** This repository currently contains foundational database, user-schema, and security modules. A FastAPI application entry point and HTTP routes have not been added yet, so the API cannot be launched or used through HTTP at this stage.
