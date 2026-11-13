@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  const API_URL = 'https://jobtracker-api-k18g.onrender.com';
+
+  const API_URL = 'http://127.0.0.1:8000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +33,7 @@ export default function Login() {
         
         const data = await response.json();
         localStorage.setItem('token', data.access_token);
-        navigate('/dashboard');
+        window.location.href = '/dashboard'; 
       } else {
    
         const response = await fetch(`${API_URL}${endpoint}`, {
