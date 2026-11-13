@@ -8,7 +8,7 @@ export default function Login() {
   const [error, setError] = useState('');
 
 
-  const API_URL = 'http://127.0.0.1:8000';
+  const API_URL = 'https://jobtracker-api-k18g.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
