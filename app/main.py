@@ -8,8 +8,10 @@ app = FastAPI(title=settings.PROJECT_NAME)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
         "https://jobtracker-frontend-xyz.vercel.app",
+        "https://jobtracker-frontend-mzcx.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
