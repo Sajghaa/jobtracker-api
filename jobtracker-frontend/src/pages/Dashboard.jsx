@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [status, setStatus] = useState('applied');
   const [notes, setNotes] = useState('');
 
-  const API_URL = 'http://127.0.0.1:8000';
+  const API_URL = 'https://jobtracker-api-k18g.onrender.com';
   const getToken = () => localStorage.getItem('token');
 
   const handleLogout = useCallback(() => {
