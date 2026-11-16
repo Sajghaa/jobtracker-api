@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [editStatus, setEditStatus] = useState('applied');
   const [editNotes, setEditNotes] = useState('');
 
+  const [uploadingId, setUploadingId] = useState(null);
+
   const API_URL = 'https://jobtracker-api-k18g.onrender.com'; // Make sure this is your backend URL!
   const getToken = () => localStorage.getItem('token');
 
@@ -114,10 +116,46 @@ export default function Dashboard() {
       });
       
       if (res.ok) {
-        setEditingAppId(null); 
-        setTriggerFetch(prev => prev + 1); 
+        setEditingAppId(null);
+        setTriggerFetch(prev => prev + 1);
       }
     } catch (err) { console.error(err); }
+  };
+
+  const handleUploadResume = async (e, appId) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      alert("Please upload a PDF file.");
+      return;
+    }
+
+    setUploadingId(appId);
+    const token = getToken();
+    
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API_URL}/applications/${appId}/resume`, {
+        method: 'POST',
+        headers: {
+          
+          Authorization: `Bearer ${token}`, 
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        setTriggerFetch(prev => prev + 1); 
+        alert("Failed to upload resume.");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   const getStatusColor = (s) => {
@@ -171,8 +209,8 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto">
-
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">My Applications</h1>
           <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
@@ -205,7 +243,7 @@ export default function Dashboard() {
           </form>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-100 border-b">
               <tr>
@@ -213,12 +251,13 @@ export default function Dashboard() {
                 <th className="p-4 text-gray-600">Role</th>
                 <th className="p-4 text-gray-600">Status</th>
                 <th className="p-4 text-gray-600">Notes</th>
+                <th className="p-4 text-gray-600 text-center">Resume</th>
                 <th className="p-4 text-gray-600 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {applications.length === 0 ? (
-                <tr><td colSpan="5" className="p-8 text-center text-gray-500">No applications yet.</td></tr>
+                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No applications yet.</td></tr>
               ) : (
                 applications.map((app) => (
                   <tr key={app.id} className="border-b hover:bg-gray-50">
@@ -230,6 +269,29 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td className="p-4 text-gray-500 text-sm truncate max-w-[150px]">{app.notes || '-'}</td>
+                    
+                    <td className="p-4 text-center">
+                      {app.resume_filename ? (
+                        <span className="text-green-600 text-sm font-semibold bg-green-50 px-2 py-1 rounded">✅ Uploaded</span>
+                      ) : (
+                        <div>
+                          <input 
+                            type="file" 
+                            id={`resume-${app.id}`} 
+                            accept=".pdf" 
+                            className="hidden" 
+                            onChange={(e) => handleUploadResume(e, app.id)} 
+                          />
+                          <label 
+                            htmlFor={`resume-${app.id}`}
+                            className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
+                          >
+                            {uploadingId === app.id ? 'Uploading...' : 'Upload PDF'}
+                          </label>
+                        </div>
+                      )}
+                    </td>
+
                     <td className="p-4 text-right space-x-3">
                       <button onClick={() => openEditModal(app)} className="text-indigo-500 hover:text-indigo-700 font-semibold text-sm">
                         Edit
