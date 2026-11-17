@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
@@ -180,3 +181,29 @@ def upload_resume(
     db.refresh(app_record)
     
     return app_record
+
+@router.get("/{app_id}/resume")
+def download_resume(
+    app_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Find the application
+    app_record = db.query(Application).filter(
+        Application.id == app_id, 
+        Application.user_id == current_user.id
+    ).first()
+    
+    if not app_record or not app_record.resume_filename:
+        raise HTTPException(status_code=404, detail="Resume not found in database")
+    
+    file_path = os.path.join("uploads", app_record.resume_filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Physical file not found (it may have been wiped on server restart)")
+        
+    return FileResponse(
+        path=file_path, 
+        media_type="application/pdf", 
+        filename=app_record.resume_filename
+    )
