@@ -162,6 +162,26 @@ export default function Dashboard() {
     }
   };
 
+  const handleViewResume = async (appId) => {
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/applications/${appId}/resume`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank'); // Opens the PDF in a new tab
+      } else {
+        const errorData = await res.json();
+        alert(`Cannot view: ${errorData.detail}`);
+      }
+    } catch (err) {
+      console.error("Failed to fetch PDF:", err);
+    }
+  };
+
   const getStatusColor = (s) => {
     switch(s) {
       case 'applied': return 'bg-blue-100 text-blue-800';
@@ -286,7 +306,12 @@ export default function Dashboard() {
                         
                         {app.resume_filename ? (
                           <div className="flex flex-col items-center gap-1">
-                            <span className="text-green-600 text-sm font-semibold bg-green-50 px-2 py-1 rounded">✅ Uploaded</span>
+                            <button 
+                              onClick={() => handleViewResume(app.id)}
+                              className="text-green-600 text-sm font-semibold bg-green-50 hover:bg-green-100 px-2 py-1 rounded transition"
+                            >
+                              ✅ View PDF
+                            </button>
                             <label 
                               htmlFor={`resume-${app.id}`}
                               className={`cursor-pointer text-xs font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
