@@ -150,6 +150,9 @@ export default function Dashboard() {
       if (res.ok) {
         setTriggerFetch(prev => prev + 1); 
         alert("Failed to upload resume.");
+      } else {
+        const errorData = await res.json();
+        alert(`Failed: ${errorData.detail || "Unknown error"}`);
       }
     } catch (err) {
       console.error("Upload error:", err);
