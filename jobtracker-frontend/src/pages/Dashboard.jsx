@@ -255,6 +255,7 @@ export default function Dashboard() {
                 <th className="p-4 text-gray-600">Status</th>
                 <th className="p-4 text-gray-600">Notes</th>
                 <th className="p-4 text-gray-600 text-center">Resume</th>
+                
                 <th className="p-4 text-gray-600 text-right">Actions</th>
               </tr>
             </thead>
