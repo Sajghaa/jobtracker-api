@@ -8,17 +8,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
+  // Form State
   const [company, setCompany] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [status, setStatus] = useState('applied');
   const [notes, setNotes] = useState('');
 
+  // Edit Modal State
   const [editingAppId, setEditingAppId] = useState(null);
   const [editCompany, setEditCompany] = useState('');
   const [editJobTitle, setEditJobTitle] = useState('');
   const [editStatus, setEditStatus] = useState('applied');
   const [editNotes, setEditNotes] = useState('');
 
+  // Upload State
   const [uploadingId, setUploadingId] = useState(null);
 
   const API_URL = 'https://jobtracker-api-k18g.onrender.com'; // Make sure this is your backend URL!
@@ -141,7 +144,6 @@ export default function Dashboard() {
       const res = await fetch(`${API_URL}/applications/${appId}/resume`, {
         method: 'POST',
         headers: {
-          
           Authorization: `Bearer ${token}`, 
         },
         body: formData,
@@ -149,7 +151,6 @@ export default function Dashboard() {
 
       if (res.ok) {
         setTriggerFetch(prev => prev + 1); 
-        alert("Failed to upload resume.");
       } else {
         const errorData = await res.json();
         alert(`Failed: ${errorData.detail || "Unknown error"}`);
@@ -255,7 +256,6 @@ export default function Dashboard() {
                 <th className="p-4 text-gray-600">Status</th>
                 <th className="p-4 text-gray-600">Notes</th>
                 <th className="p-4 text-gray-600 text-center">Resume</th>
-                
                 <th className="p-4 text-gray-600 text-right">Actions</th>
               </tr>
             </thead>
@@ -275,25 +275,34 @@ export default function Dashboard() {
                     <td className="p-4 text-gray-500 text-sm truncate max-w-[150px]">{app.notes || '-'}</td>
                     
                     <td className="p-4 text-center">
-                      {app.resume_filename ? (
-                        <span className="text-green-600 text-sm font-semibold bg-green-50 px-2 py-1 rounded">✅ Uploaded</span>
-                      ) : (
-                        <div>
-                          <input 
-                            type="file" 
-                            id={`resume-${app.id}`} 
-                            accept=".pdf" 
-                            className="hidden" 
-                            onChange={(e) => handleUploadResume(e, app.id)} 
-                          />
+                      <div>
+                        <input 
+                          type="file" 
+                          id={`resume-${app.id}`} 
+                          accept=".pdf" 
+                          className="hidden" 
+                          onChange={(e) => handleUploadResume(e, app.id)} 
+                        />
+                        
+                        {app.resume_filename ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-green-600 text-sm font-semibold bg-green-50 px-2 py-1 rounded">✅ Uploaded</span>
+                            <label 
+                              htmlFor={`resume-${app.id}`}
+                              className={`cursor-pointer text-xs font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
+                            >
+                              {uploadingId === app.id ? 'Replacing...' : 'Replace PDF'}
+                            </label>
+                          </div>
+                        ) : (
                           <label 
                             htmlFor={`resume-${app.id}`}
                             className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
                           >
                             {uploadingId === app.id ? 'Uploading...' : 'Upload PDF'}
                           </label>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
 
                     <td className="p-4 text-right space-x-3">
