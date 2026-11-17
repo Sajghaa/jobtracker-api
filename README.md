@@ -1,10 +1,12 @@
 # Job Tracker API
 
 
-**Live API Documentation:** [Interactive Swagger UI](https://jobtracker-api-k18g.onrender.com/docs)
+**Live Frontend Application:** [https://jobtracker-frontend-mzcx.onrender.com](https://jobtracker-frontend-mzcx.onrender.com)
+**Live API Documentation (Swagger UI):** [https://jobtracker-api-k18g.onrender.com/docs](https://jobtracker-api-k18g.onrender.com/docs)
 
 
-A production-grade REST API built with FastAPI, PostgreSQL, and SQLAlchemy. Designed to help users track job applications, manage resume uploads, and view application analytics.
+## 📖 Overview
+JobTracker is a full-stack application designed to help users manage their job hunt. It provides secure authentication, tracking for job applications, resume storage, and live analytics.
 
 ## Technology
 
