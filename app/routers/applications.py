@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
+import shutil
+import os
 
 from app.db.database import get_db
 from app.models.application import Application, ApplicationStatus
@@ -9,12 +11,12 @@ from app.models.user import User
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationStats
 from app.core.dependencies import get_current_user
 
-import shutil
-import os
-from fastapi import File, UploadFile
-
-
 router = APIRouter(prefix="/applications", tags=["Applications"])
+
+def send_follow_up_reminder(email: str, company: str):
+    import time
+    time.sleep(3)
+    print(f"\n📧 [BACKGROUND TASK] Email sent to {email}: Don't forget to follow up with {company}!\n")
 
 @router.post("/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
 def create_application(
@@ -30,6 +32,7 @@ def create_application(
     db.add(new_app)
     db.commit()
     db.refresh(new_app)
+    
     background_tasks.add_task(
         send_follow_up_reminder,
         email=current_user.email,
@@ -37,15 +40,12 @@ def create_application(
     )
     return new_app
 
-
 @router.get("/", response_model=List[ApplicationResponse])
 def get_my_applications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-   
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(10, ge=1, le=100, description="Max records to return (max 100)"),
-    
     app_status: Optional[ApplicationStatus] = Query(None, alias="status", description="Filter by application status"),
     company: Optional[str] = Query(None, description="Search by company name (case-insensitive)")
 ):
@@ -58,7 +58,6 @@ def get_my_applications(
         query = query.filter(Application.company_name.ilike(f"%{company}%"))
         
     applications = query.offset(skip).limit(limit).all()
-    
     return applications
 
 @router.get("/stats", response_model=ApplicationStats)
@@ -66,7 +65,6 @@ def get_application_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-
     results = db.query(
         Application.status, 
         func.count(Application.id)
@@ -109,9 +107,6 @@ def get_application(
         raise HTTPException(status_code=404, detail="Application not found")
     return app
 
-
-
-
 @router.put("/{app_id}", response_model=ApplicationResponse)
 def update_application(
     app_id: int,
@@ -139,7 +134,7 @@ def update_application(
 def delete_application(
     app_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)  # 🔒 LOCKED
+    current_user: User = Depends(get_current_user)
 ):
     app = db.query(Application).filter(
         Application.id == app_id, 
@@ -171,6 +166,8 @@ def upload_resume(
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
     
+    os.makedirs("uploads", exist_ok=True)
+    
     file_extension = os.path.splitext(file.filename)[1]
     unique_filename = f"user_{current_user.id}_app_{app_id}{file_extension}"
     file_path = os.path.join("uploads", unique_filename)
@@ -183,9 +180,3 @@ def upload_resume(
     db.refresh(app_record)
     
     return app_record
-
-
-def send_follow_up_reminder(email: str, company: str):
-    import time
-    time.sleep(3)
-    print(f"\n📧 [BACKGROUND TASK] Email sent to {email}: Don't forget to follow up with {company}!\n")
