@@ -1,36 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function Dashboard() {
+export default function Dashboard({ setToken }) { 
   const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
-  // Form State
   const [company, setCompany] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [status, setStatus] = useState('applied');
   const [notes, setNotes] = useState('');
 
-  // Edit Modal State
   const [editingAppId, setEditingAppId] = useState(null);
   const [editCompany, setEditCompany] = useState('');
   const [editJobTitle, setEditJobTitle] = useState('');
   const [editStatus, setEditStatus] = useState('applied');
   const [editNotes, setEditNotes] = useState('');
 
-  // Upload State
   const [uploadingId, setUploadingId] = useState(null);
 
-  const API_URL = 'https://jobtracker-api-k18g.onrender.com'; // Make sure this is your backend URL!
+  const API_URL = 'https://jobtracker-api-k18g.onrender.com';
   const getToken = () => localStorage.getItem('token');
 
-  const handleLogout = useCallback(() => {
+  
+  const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/');
-  }, [navigate]);
+    setToken(null); 
+    navigate('/');  
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -62,7 +61,7 @@ export default function Dashboard() {
     };
     fetchData();
     return () => { isMounted = false; };
-  }, [triggerFetch, handleLogout]);
+  }, [triggerFetch]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -117,7 +116,7 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(updatedApp),
       });
-      
+
       if (res.ok) {
         setEditingAppId(null);
         setTriggerFetch(prev => prev + 1);
@@ -136,7 +135,7 @@ export default function Dashboard() {
 
     setUploadingId(appId);
     const token = getToken();
-    
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -144,13 +143,13 @@ export default function Dashboard() {
       const res = await fetch(`${API_URL}/applications/${appId}/resume`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`, 
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
 
       if (res.ok) {
-        setTriggerFetch(prev => prev + 1); 
+        setTriggerFetch(prev => prev + 1);
       } else {
         const errorData = await res.json();
         alert(`Failed: ${errorData.detail || "Unknown error"}`);
@@ -172,7 +171,7 @@ export default function Dashboard() {
       if (res.ok) {
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank'); // Opens the PDF in a new tab
+        window.open(url, '_blank');
       } else {
         const errorData = await res.json();
         alert(`Cannot view: ${errorData.detail}`);
@@ -196,7 +195,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 relative">
-      
+
       {editingAppId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl w-96">
@@ -293,26 +292,26 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td className="p-4 text-gray-500 text-sm truncate max-w-[150px]">{app.notes || '-'}</td>
-                    
+
                     <td className="p-4 text-center">
                       <div>
-                        <input 
-                          type="file" 
-                          id={`resume-${app.id}`} 
-                          accept=".pdf" 
-                          className="hidden" 
-                          onChange={(e) => handleUploadResume(e, app.id)} 
+                        <input
+                          type="file"
+                          id={`resume-${app.id}`}
+                          accept=".pdf"
+                          className="hidden"
+                          onChange={(e) => handleUploadResume(e, app.id)}
                         />
-                        
+
                         {app.resume_filename ? (
                           <div className="flex flex-col items-center gap-1">
-                            <button 
+                            <button
                               onClick={() => handleViewResume(app.id)}
                               className="text-green-600 text-sm font-semibold bg-green-50 hover:bg-green-100 px-2 py-1 rounded transition"
                             >
                               ✅ View PDF
                             </button>
-                            <label 
+                            <label
                               htmlFor={`resume-${app.id}`}
                               className={`cursor-pointer text-xs font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
                             >
@@ -320,7 +319,7 @@ export default function Dashboard() {
                             </label>
                           </div>
                         ) : (
-                          <label 
+                          <label
                             htmlFor={`resume-${app.id}`}
                             className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
                           >
