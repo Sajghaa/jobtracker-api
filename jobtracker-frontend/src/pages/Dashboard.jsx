@@ -1,35 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function Dashboard({ setToken }) { 
+export default function Dashboard({ setToken }) {
   const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingAppId, setEditingAppId] = useState(null);
+
   const [company, setCompany] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [status, setStatus] = useState('applied');
   const [notes, setNotes] = useState('');
 
-  const [editingAppId, setEditingAppId] = useState(null);
-  const [editCompany, setEditCompany] = useState('');
-  const [editJobTitle, setEditJobTitle] = useState('');
-  const [editStatus, setEditStatus] = useState('applied');
-  const [editNotes, setEditNotes] = useState('');
-
   const [uploadingId, setUploadingId] = useState(null);
 
-  const API_URL = 'https://jobtracker-api-k18g.onrender.com';
+  const API_URL = 'https://jobtracker-api-k18g.onrender.com'; 
   const getToken = () => localStorage.getItem('token');
 
-  
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
-    setToken(null); 
-    navigate('/');  
-  };
+    setToken(null);
+    navigate('/');
+  }, [navigate, setToken]);
 
   useEffect(() => {
     let isMounted = true;
@@ -61,7 +57,7 @@ export default function Dashboard({ setToken }) {
     };
     fetchData();
     return () => { isMounted = false; };
-  }, [triggerFetch]);
+  }, [triggerFetch, handleLogout]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -76,12 +72,14 @@ export default function Dashboard({ setToken }) {
       });
       if (res.ok) {
         setCompany(''); setJobTitle(''); setNotes(''); setStatus('applied');
+        setIsAdding(false);
         setTriggerFetch(prev => prev + 1);
       }
     } catch (err) { console.error(err); }
   };
 
   const handleDelete = async (id) => {
+    if(!window.confirm("Are you sure you want to delete this application?")) return;
     const token = getToken();
     try {
       await fetch(`${API_URL}/applications/${id}`, {
@@ -94,20 +92,20 @@ export default function Dashboard({ setToken }) {
 
   const openEditModal = (app) => {
     setEditingAppId(app.id);
-    setEditCompany(app.company_name);
-    setEditJobTitle(app.job_title);
-    setEditStatus(app.status);
-    setEditNotes(app.notes || '');
+    setCompany(app.company_name);
+    setJobTitle(app.job_title);
+    setStatus(app.status);
+    setNotes(app.notes || '');
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     const token = getToken();
     const updatedApp = {
-      company_name: editCompany,
-      job_title: editJobTitle,
-      status: editStatus,
-      notes: editNotes || null,
+      company_name: company,
+      job_title: jobTitle,
+      status: status,
+      notes: notes || null,
     };
 
     try {
@@ -116,7 +114,7 @@ export default function Dashboard({ setToken }) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(updatedApp),
       });
-
+      
       if (res.ok) {
         setEditingAppId(null);
         setTriggerFetch(prev => prev + 1);
@@ -127,29 +125,22 @@ export default function Dashboard({ setToken }) {
   const handleUploadResume = async (e, appId) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      alert("Please upload a PDF file.");
-      return;
-    }
+    if (file.type !== "application/pdf") return alert("Please upload a PDF file.");
 
     setUploadingId(appId);
     const token = getToken();
-
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       const res = await fetch(`${API_URL}/applications/${appId}/resume`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
       if (res.ok) {
-        setTriggerFetch(prev => prev + 1);
+        setTriggerFetch(prev => prev + 1); 
       } else {
         const errorData = await res.json();
         alert(`Failed: ${errorData.detail || "Unknown error"}`);
@@ -167,51 +158,178 @@ export default function Dashboard({ setToken }) {
       const res = await fetch(`${API_URL}/applications/${appId}/resume`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.ok) {
         const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        window.open(window.URL.createObjectURL(blob), '_blank');
       } else {
-        const errorData = await res.json();
-        alert(`Cannot view: ${errorData.detail}`);
+        alert("Resume file not found. It may have been wiped on server restart.");
       }
-    } catch (err) {
-      console.error("Failed to fetch PDF:", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const getStatusColor = (s) => {
     switch(s) {
-      case 'applied': return 'bg-blue-100 text-blue-800';
-      case 'interviewing': return 'bg-yellow-100 text-yellow-800';
-      case 'offer': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'applied': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'interviewing': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'offer': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'rejected': return 'bg-rose-100 text-rose-700 border-rose-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center text-xl text-indigo-600 font-semibold animate-pulse">Loading Workspace...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 relative">
+    <div className="flex h-screen bg-slate-50 font-sans">
+      
+      <aside className="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800">
+          <span className="text-xl font-bold tracking-tighter text-indigo-400">JobTracker<span className="text-white">.pro</span></span>
+        </div>
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          <button className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium transition">
+            <span>📊</span> Dashboard
+          </button>
+          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg font-medium transition">
+            <span>📄</span> Applications
+          </button>
+          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg font-medium transition">
+            <span>⚙️</span> Settings
+          </button>
+        </nav>
+        <div className="p-4 border-t border-slate-800">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-rose-400 hover:text-white hover:bg-rose-500/10 rounded-lg font-medium transition">
+            <span>🚪</span> Log out
+          </button>
+        </div>
+      </aside>
 
-      {editingAppId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Edit Application</h2>
-            <form onSubmit={handleUpdate} className="space-y-4">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        
+        {/* HEADER */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
+          <h1 className="text-2xl font-bold text-slate-800">Overview</h1>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => { setCompany(''); setJobTitle(''); setNotes(''); setIsAdding(true); }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition shadow-sm"
+            >
+              + New Application
+            </button>
+            <div className="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold">
+              U
+            </div>
+          </div>
+        </header>
+
+        {/* SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-y-auto p-8">
+          <div className="max-w-6xl mx-auto space-y-8">
+            
+            {/* STATS CARDS */}
+            {stats && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {Object.entries(stats).map(([key, value]) => (
+                  <div key={key} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-sm font-medium text-slate-500 capitalize mb-1">{key.replace('_', ' ')}</p>
+                    <p className="text-3xl font-bold text-slate-800">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* TABLE */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Company</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Resume</th>
+                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {applications.length === 0 ? (
+                    <tr><td colSpan="5" className="p-12 text-center text-slate-500">No applications yet. Click "+ New Application" to start.</td></tr>
+                  ) : (
+                    applications.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-50 transition">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                              {app.company_name.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-slate-800">{app.company_name}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-slate-600">{app.job_title}</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase border ${getStatusColor(app.status)}`}>
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex justify-center">
+                            <input 
+                              type="file" 
+                              id={`resume-${app.id}`} 
+                              accept=".pdf" 
+                              className="hidden" 
+                              onChange={(e) => handleUploadResume(e, app.id)} 
+                            />
+                            {app.resume_filename ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <button onClick={() => handleViewResume(app.id)} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold flex items-center gap-1">
+                                  <span>📄</span> View
+                                </button>
+                                <label htmlFor={`resume-${app.id}`} className="cursor-pointer text-[10px] text-slate-400 hover:text-indigo-600 underline">
+                                  Replace
+                                </label>
+                              </div>
+                            ) : (
+                              <label htmlFor={`resume-${app.id}`} className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50' : ''}`}>
+                                {uploadingId === app.id ? '...' : 'Upload'}
+                              </label>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 text-right space-x-3">
+                          <button onClick={() => openEditModal(app)} className="text-slate-400 hover:text-indigo-600 font-medium text-sm transition">Edit</button>
+                          <button onClick={() => handleDelete(app.id)} className="text-slate-400 hover:text-rose-600 font-medium text-sm transition">Delete</button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {(isAdding || editingAppId) && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h2 className="text-lg font-bold text-slate-800">
+                {editingAppId ? 'Edit Application' : 'New Application'}
+              </h2>
+              <button onClick={() => { setIsAdding(false); setEditingAppId(null); }} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onSubmit={editingAppId ? handleUpdate : handleCreate} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-gray-600">Company</label>
-                <input type="text" value={editCompany} onChange={(e) => setEditCompany(e.target.value)} required className="w-full p-2 border rounded" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Company</label>
+                <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} required className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
               </div>
               <div>
-                <label className="block text-sm text-gray-600">Role</label>
-                <input type="text" value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} required className="w-full p-2 border rounded" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                <input type="text" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} required className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
               </div>
               <div>
-                <label className="block text-sm text-gray-600">Status</label>
-                <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full p-2 border rounded">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
                   <option value="applied">Applied</option>
                   <option value="interviewing">Interviewing</option>
                   <option value="offer">Offer</option>
@@ -220,131 +338,19 @@ export default function Dashboard({ setToken }) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-600">Notes</label>
-                <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="w-full p-2 border rounded" />
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows="3" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"></textarea>
               </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <button type="button" onClick={() => setEditingAppId(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save Changes</button>
+              <div className="pt-2">
+                <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition shadow-sm">
+                  {editingAppId ? 'Save Changes' : 'Add Application'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">My Applications</h1>
-          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
-        </div>
-
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            {Object.entries(stats).map(([key, value]) => (
-              <div key={key} className="bg-white p-4 rounded-lg shadow text-center">
-                <p className="text-sm text-gray-500 capitalize">{key.replace('_', ' ')}</p>
-                <p className="text-2xl font-bold text-indigo-600">{value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="bg-white p-6 rounded-lg shadow mb-8">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Add New Application</h2>
-          <form onSubmit={handleCreate} className="flex flex-wrap gap-4">
-            <input type="text" placeholder="Company Name" value={company} onChange={(e) => setCompany(e.target.value)} required className="flex-1 min-w-[200px] p-2 border rounded" />
-            <input type="text" placeholder="Job Title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} required className="flex-1 min-w-[200px] p-2 border rounded" />
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="p-2 border rounded">
-              <option value="applied">Applied</option>
-              <option value="interviewing">Interviewing</option>
-              <option value="offer">Offer</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <input type="text" placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} className="flex-1 min-w-[200px] p-2 border rounded" />
-            <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Add Job</button>
-          </form>
-        </div>
-
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-gray-100 border-b">
-              <tr>
-                <th className="p-4 text-gray-600">Company</th>
-                <th className="p-4 text-gray-600">Role</th>
-                <th className="p-4 text-gray-600">Status</th>
-                <th className="p-4 text-gray-600">Notes</th>
-                <th className="p-4 text-gray-600 text-center">Resume</th>
-                <th className="p-4 text-gray-600 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.length === 0 ? (
-                <tr><td colSpan="6" className="p-8 text-center text-gray-500">No applications yet.</td></tr>
-              ) : (
-                applications.map((app) => (
-                  <tr key={app.id} className="border-b hover:bg-gray-50">
-                    <td className="p-4 font-medium">{app.company_name}</td>
-                    <td className="p-4 text-gray-600">{app.job_title}</td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(app.status)}`}>
-                        {app.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-500 text-sm truncate max-w-[150px]">{app.notes || '-'}</td>
-
-                    <td className="p-4 text-center">
-                      <div>
-                        <input
-                          type="file"
-                          id={`resume-${app.id}`}
-                          accept=".pdf"
-                          className="hidden"
-                          onChange={(e) => handleUploadResume(e, app.id)}
-                        />
-
-                        {app.resume_filename ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <button
-                              onClick={() => handleViewResume(app.id)}
-                              className="text-green-600 text-sm font-semibold bg-green-50 hover:bg-green-100 px-2 py-1 rounded transition"
-                            >
-                              ✅ View PDF
-                            </button>
-                            <label
-                              htmlFor={`resume-${app.id}`}
-                              className={`cursor-pointer text-xs font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
-                            >
-                              {uploadingId === app.id ? 'Replacing...' : 'Replace PDF'}
-                            </label>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor={`resume-${app.id}`}
-                            className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50 cursor-wait' : ''}`}
-                          >
-                            {uploadingId === app.id ? 'Uploading...' : 'Upload PDF'}
-                          </label>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="p-4 text-right space-x-3">
-                      <button onClick={() => openEditModal(app)} className="text-indigo-500 hover:text-indigo-700 font-semibold text-sm">
-                        Edit
-                      </button>
-                      <button onClick={() => handleDelete(app.id)} className="text-red-500 hover:text-red-700 font-semibold text-sm">
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-      </div>
     </div>
   );
 }
