@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 
 export default function Login() {
@@ -8,6 +8,11 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (localStorage.getItem('token')) {
+      window.location.href = '/dashboard';
+    }
+  }, []);
 
   const API_URL = 'https://jobtracker-api-k18g.onrender.com';
 
