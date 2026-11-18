@@ -6,6 +6,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
 
   const API_URL = 'https://jobtracker-api-k18g.onrender.com';
@@ -13,6 +14,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     const endpoint = isLogin ? '/auth/login' : '/auth/register';
     
@@ -49,6 +51,7 @@ export default function Login() {
       }
     } catch (err) {
       setError(err.message);
+      setIsLoading(false); 
     }
   };
 
@@ -82,8 +85,14 @@ export default function Login() {
               required 
             />
           </div>
-          <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-            {isLogin ? 'Login' : 'Register'}
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            className={`w-full font-bold py-2 px-4 rounded transition duration-200 ${
+              isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
+          >
+            {isLoading ? 'Authenticating...' : (isLogin ? 'Login' : 'Register')}
           </button>
         </form>
 
