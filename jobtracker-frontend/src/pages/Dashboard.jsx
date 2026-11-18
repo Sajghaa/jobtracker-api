@@ -8,6 +8,9 @@ export default function Dashboard({ setToken }) {
   const [loading, setLoading] = useState(true);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'applications', 'settings'
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingAppId, setEditingAppId] = useState(null);
 
@@ -187,13 +190,22 @@ export default function Dashboard({ setToken }) {
           <span className="text-xl font-bold tracking-tighter text-indigo-400">JobTracker<span className="text-white">.pro</span></span>
         </div>
         <nav className="flex-1 px-4 py-6 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium transition">
-            <span>📊</span> Dashboard
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition ${activeTab === 'overview' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            <span>📊</span> Overview
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg font-medium transition">
+          <button 
+            onClick={() => setActiveTab('applications')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition ${activeTab === 'applications' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
             <span>📄</span> Applications
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg font-medium transition">
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition ${activeTab === 'settings' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
             <span>⚙️</span> Settings
           </button>
         </nav>
@@ -207,8 +219,9 @@ export default function Dashboard({ setToken }) {
       <main className="flex-1 flex flex-col overflow-hidden">
         
         {/* HEADER */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
-          <h1 className="text-2xl font-bold text-slate-800">Overview</h1>
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 relative">
+          <h1 className="text-2xl font-bold text-slate-800 capitalize">{activeTab}</h1>
+          
           <div className="flex items-center gap-4">
             <button 
               onClick={() => { setCompany(''); setJobTitle(''); setNotes(''); setIsAdding(true); }}
@@ -216,102 +229,132 @@ export default function Dashboard({ setToken }) {
             >
               + New Application
             </button>
-            <div className="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold">
-              U
+            
+            <div className="relative">
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold hover:bg-indigo-200 transition focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                U
+              </button>
+              
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-800">My Account</p>
+                  </div>
+                  <button onClick={() => setActiveTab('settings')} className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition">Settings</button>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition font-medium">Log out</button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-6xl mx-auto space-y-8">
-            
-            {/* STATS CARDS */}
-            {stats && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {Object.entries(stats).map(([key, value]) => (
-                  <div key={key} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-sm font-medium text-slate-500 capitalize mb-1">{key.replace('_', ' ')}</p>
-                    <p className="text-3xl font-bold text-slate-800">{value}</p>
-                  </div>
-                ))}
+        <div className="flex-1 overflow-y-auto p-8" onClick={() => setIsUserMenuOpen(false)}>
+          
+          {activeTab === 'overview' && (
+            <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+              {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {Object.entries(stats).map(([key, value]) => (
+                    <div key={key} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                      <p className="text-sm font-medium text-slate-500 capitalize mb-1">{key.replace('_', ' ')}</p>
+                      <p className="text-3xl font-bold text-slate-800">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center text-slate-500">
+                Welcome to your dashboard! Click on <strong className="text-indigo-600 cursor-pointer" onClick={() => setActiveTab('applications')}>Applications</strong> in the sidebar to manage your job hunt.
               </div>
-            )}
-
-            {/* TABLE */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Company</th>
-                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
-                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Resume</th>
-                    <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {applications.length === 0 ? (
-                    <tr><td colSpan="5" className="p-12 text-center text-slate-500">No applications yet. Click "+ New Application" to start.</td></tr>
-                  ) : (
-                    applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-slate-50 transition">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                              {app.company_name.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="font-semibold text-slate-800">{app.company_name}</span>
-                          </div>
-                        </td>
-                        <td className="p-4 text-slate-600">{app.job_title}</td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase border ${getStatusColor(app.status)}`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="flex justify-center">
-                            <input 
-                              type="file" 
-                              id={`resume-${app.id}`} 
-                              accept=".pdf" 
-                              className="hidden" 
-                              onChange={(e) => handleUploadResume(e, app.id)} 
-                            />
-                            {app.resume_filename ? (
-                              <div className="flex flex-col items-center gap-1">
-                                <button onClick={() => handleViewResume(app.id)} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold flex items-center gap-1">
-                                  <span>📄</span> View
-                                </button>
-                                <label htmlFor={`resume-${app.id}`} className="cursor-pointer text-[10px] text-slate-400 hover:text-indigo-600 underline">
-                                  Replace
-                                </label>
-                              </div>
-                            ) : (
-                              <label htmlFor={`resume-${app.id}`} className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50' : ''}`}>
-                                {uploadingId === app.id ? '...' : 'Upload'}
-                              </label>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4 text-right space-x-3">
-                          <button onClick={() => openEditModal(app)} className="text-slate-400 hover:text-indigo-600 font-medium text-sm transition">Edit</button>
-                          <button onClick={() => handleDelete(app.id)} className="text-slate-400 hover:text-rose-600 font-medium text-sm transition">Delete</button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
             </div>
-          </div>
+          )}
+
+          {activeTab === 'applications' && (
+            <div className="max-w-6xl mx-auto animate-fade-in">
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Company</th>
+                      <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
+                      <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                      <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Resume</th>
+                      <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {applications.length === 0 ? (
+                      <tr><td colSpan="5" className="p-12 text-center text-slate-500">No applications yet. Click "+ New Application" to start.</td></tr>
+                    ) : (
+                      applications.map((app) => (
+                        <tr key={app.id} className="hover:bg-slate-50 transition">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                                {app.company_name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-semibold text-slate-800">{app.company_name}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-slate-600">{app.job_title}</td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase border ${getStatusColor(app.status)}`}>
+                              {app.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex justify-center">
+                              <input type="file" id={`resume-${app.id}`} accept=".pdf" className="hidden" onChange={(e) => handleUploadResume(e, app.id)} />
+                              {app.resume_filename ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <button onClick={() => handleViewResume(app.id)} className="text-emerald-600 hover:text-emerald-800 text-sm font-semibold flex items-center gap-1">
+                                    <span>📄</span> View
+                                  </button>
+                                  <label htmlFor={`resume-${app.id}`} className="cursor-pointer text-[10px] text-slate-400 hover:text-indigo-600 underline">Replace</label>
+                                </div>
+                              ) : (
+                                <label htmlFor={`resume-${app.id}`} className={`cursor-pointer text-sm font-semibold text-indigo-600 hover:text-indigo-800 ${uploadingId === app.id ? 'opacity-50' : ''}`}>
+                                  {uploadingId === app.id ? '...' : 'Upload'}
+                                </label>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 text-right space-x-3">
+                            <button onClick={() => openEditModal(app)} className="text-slate-400 hover:text-indigo-600 font-medium text-sm transition">Edit</button>
+                            <button onClick={() => handleDelete(app.id)} className="text-slate-400 hover:text-rose-600 font-medium text-sm transition">Delete</button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 👇 TAB 3: SETTINGS (Placeholder) */}
+          {activeTab === 'settings' && (
+            <div className="max-w-3xl mx-auto animate-fade-in">
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8 text-center">
+                <div className="text-4xl mb-4">⚙️</div>
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Profile Settings</h2>
+                <p className="text-slate-500 mb-6">This is where users would update their email, password, and notification preferences.</p>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 inline-block">
+                  <p className="text-sm text-slate-600">User Email: <span className="font-semibold">Test User</span></p>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
+      {/* MODAL FOR CREATE & EDIT (Remains the same) */}
       {(isAdding || editingAppId) && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h2 className="text-lg font-bold text-slate-800">
                 {editingAppId ? 'Edit Application' : 'New Application'}
