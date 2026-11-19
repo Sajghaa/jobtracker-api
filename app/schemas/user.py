@@ -1,13 +1,18 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from typing import Optional
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+    full_name: Optional[str] = None
     is_active: bool
     created_at: datetime
 
