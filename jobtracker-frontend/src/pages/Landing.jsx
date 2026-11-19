@@ -5,7 +5,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white font-sans">
-      {/* Navbar - FIXED FOR MOBILE */}
       <nav className="flex justify-between items-center px-4 md:px-8 py-4 md:py-6 max-w-7xl mx-auto">
         <div className="text-xl md:text-2xl font-bold tracking-tighter text-indigo-400">
           JobTracker<span className="text-white">.pro</span>
@@ -29,7 +28,6 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section - FIXED FOR MOBILE */}
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-12 md:pt-24 pb-16 text-center">
         <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight mb-6">
           Track your job hunt. <br />
@@ -48,7 +46,6 @@ export default function Landing() {
           </Link>
         </div>
 
-        {/* Feature Grid - FIXED FOR MOBILE */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mt-20 md:mt-32 text-left">
           <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border border-slate-700 hover:border-indigo-500 transition">
             <div className="text-3xl mb-4">📊</div>
