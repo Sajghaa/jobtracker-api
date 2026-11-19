@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
-/* ============================================================
-   ICONS  (inline SVG — replaces emoji from the prototype)
-   ============================================================ */
 const IconBase = ({ children, className = 'w-5 h-5', ...rest }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"
     strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...rest}>
@@ -36,21 +34,15 @@ const Icons = {
   AlertCircle:  (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></IconBase>,
 };
 
-/* ============================================================
-   STATUS CONFIG
-   ============================================================ */
 const STATUS_CONFIG = {
-  applied:      { label: 'Applied',      dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700 ring-blue-600/20',       icon: Icons.Send },
-  interviewing: { label: 'Interviewing', dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700 ring-amber-600/20',    icon: Icons.Calendar },
-  offer:        { label: 'Offer',        dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20', icon: Icons.CheckCircle },
-  rejected:     { label: 'Rejected',     dot: 'bg-rose-500',    badge: 'bg-rose-50 text-rose-700 ring-rose-600/20',       icon: Icons.XCircle },
-  withdrawn:    { label: 'Withdrawn',    dot: 'bg-slate-400',   badge: 'bg-slate-50 text-slate-700 ring-slate-600/20',    icon: Icons.MinusCircle },
+  applied:      { label: 'Applied',      dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700 ring-blue-600/20',          icon: Icons.Send,         hex: '#3b82f6' },
+  interviewing: { label: 'Interviewing', dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700 ring-amber-600/20',       icon: Icons.Calendar,     hex: '#f59e0b' },
+  offer:        { label: 'Offer',        dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20', icon: Icons.CheckCircle,  hex: '#10b981' },
+  rejected:     { label: 'Rejected',     dot: 'bg-rose-500',    badge: 'bg-rose-50 text-rose-700 ring-rose-600/20',          icon: Icons.XCircle,      hex: '#f43f5e' },
+  withdrawn:    { label: 'Withdrawn',    dot: 'bg-slate-400',   badge: 'bg-slate-50 text-slate-700 ring-slate-600/20',       icon: Icons.MinusCircle,  hex: '#94a3b8' },
 };
-const getStatus = (s) => STATUS_CONFIG[s] || { label: s, dot: 'bg-slate-400', badge: 'bg-slate-50 text-slate-700 ring-slate-600/20', icon: Icons.Inbox };
+const getStatus = (s) => STATUS_CONFIG[s] || { label: s, dot: 'bg-slate-400', badge: 'bg-slate-50 text-slate-700 ring-slate-600/20', icon: Icons.Inbox, hex: '#94a3b8' };
 
-/* ============================================================
-   COMPONENT
-   ============================================================ */
 export default function Dashboard({ setToken }) {
   const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
@@ -63,7 +55,6 @@ export default function Dashboard({ setToken }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const userMenuRef = useRef(null);
 
-  // Form / modal
   const [isAdding, setIsAdding] = useState(false);
   const [editingAppId, setEditingAppId] = useState(null);
   const [company, setCompany] = useState('');
@@ -72,14 +63,11 @@ export default function Dashboard({ setToken }) {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Search + filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Uploading
   const [uploadingId, setUploadingId] = useState(null);
 
-  // Toasts (replaces alert())
   const [toasts, setToasts] = useState([]);
   const showToast = useCallback((message, type = 'success') => {
     const id = Date.now() + Math.random();
@@ -87,7 +75,6 @@ export default function Dashboard({ setToken }) {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   }, []);
 
-  // Delete confirmation (replaces window.confirm)
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const API_URL = 'https://jobtracker-api-k18g.onrender.com';
@@ -99,7 +86,6 @@ export default function Dashboard({ setToken }) {
     navigate('/');
   }, [navigate, setToken]);
 
-  /* ---- Fetch data ---- */
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
@@ -132,7 +118,6 @@ export default function Dashboard({ setToken }) {
     return () => { isMounted = false; };
   }, [triggerFetch, handleLogout]);
 
-  /* ---- Close user menu on outside click ---- */
   useEffect(() => {
     const handler = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
@@ -143,7 +128,6 @@ export default function Dashboard({ setToken }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  /* ---- Close modals on Esc ---- */
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') {
@@ -156,7 +140,6 @@ export default function Dashboard({ setToken }) {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  /* ---- Form helpers ---- */
   const resetForm = () => {
     setCompany(''); setJobTitle(''); setStatus('applied'); setNotes('');
     setEditingAppId(null);
@@ -177,7 +160,6 @@ export default function Dashboard({ setToken }) {
 
   const closeModal = () => { setIsAdding(false); resetForm(); };
 
-  /* ---- CRUD ---- */
   const handleCreate = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -250,7 +232,6 @@ export default function Dashboard({ setToken }) {
     }
   };
 
-  /* ---- Resume ---- */
   const handleUploadResume = async (e, appId) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -282,7 +263,7 @@ export default function Dashboard({ setToken }) {
       showToast('Upload failed', 'error');
     } finally {
       setUploadingId(null);
-      e.target.value = ''; // allow re-uploading the same file
+      e.target.value = '';
     }
   };
 
@@ -318,6 +299,13 @@ export default function Dashboard({ setToken }) {
     statusCounts[s] = applications.filter((a) => a.status === s).length;
   });
 
+  const pieData = [
+    { name: 'Applied',      value: statusCounts.applied,      color: STATUS_CONFIG.applied.hex },
+    { name: 'Interviewing', value: statusCounts.interviewing, color: STATUS_CONFIG.interviewing.hex },
+    { name: 'Offer',        value: statusCounts.offer,        color: STATUS_CONFIG.offer.hex },
+    { name: 'Rejected',     value: statusCounts.rejected,     color: STATUS_CONFIG.rejected.hex },
+    { name: 'Withdrawn',    value: statusCounts.withdrawn,    color: STATUS_CONFIG.withdrawn.hex },
+  ].filter((d) => d.value > 0);
 
   if (loading) {
     return (
@@ -497,14 +485,14 @@ export default function Dashboard({ setToken }) {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-     
-                  <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <h3 className="text-sm font-semibold text-slate-900 mb-4">Pipeline</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-4">Pipeline Breakdown</h3>
                     {applications.length === 0 ? (
                       <p className="text-sm text-slate-500">No data yet.</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-4 mt-6">
                         {['applied', 'interviewing', 'offer', 'rejected', 'withdrawn'].map((s) => {
                           const count = statusCounts[s] || 0;
                           const pct = applications.length ? Math.round((count / applications.length) * 100) : 0;
@@ -513,10 +501,10 @@ export default function Dashboard({ setToken }) {
                             <div key={s}>
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-xs font-medium text-slate-600 capitalize">{cfg.label}</span>
-                                <span className="text-xs font-semibold text-slate-500">{count}</span>
+                                <span className="text-xs font-semibold text-slate-500">{count} ({pct}%)</span>
                               </div>
-                              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className={`h-full ${cfg.dot} transition-all`} style={{ width: `${pct}%` }} />
+                              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div className={`h-full ${cfg.dot} transition-all duration-500`} style={{ width: `${pct}%` }} />
                               </div>
                             </div>
                           );
@@ -525,48 +513,90 @@ export default function Dashboard({ setToken }) {
                     )}
                   </div>
 
-                  <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-semibold text-slate-900">Recent applications</h3>
-                      <button
-                        onClick={() => setActiveTab('applications')}
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                      >
-                        View all →
-                      </button>
-                    </div>
-                    {applications.length === 0 ? (
-                      <EmptyState
-                        icon={Icons.Inbox}
-                        title="No applications yet"
-                        description="Add your first job application to start tracking."
-                        action={<button onClick={openCreateModal} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">+ New Application</button>}
-                      />
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-2">Status Distribution</h3>
+                    {applications.length === 0 || pieData.length === 0 ? (
+                      <div className="flex-1 flex items-center justify-center text-sm text-slate-400 min-h-[250px]">No data</div>
                     ) : (
-                      <ul className="divide-y divide-slate-100 -mx-2">
-                        {applications.slice(0, 5).map((app) => {
-                          const cfg = getStatus(app.status);
-                          return (
-                            <li key={app.id} className="flex items-center justify-between px-2 py-3 hover:bg-slate-50 rounded-lg transition-colors">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-600 shrink-0">
-                                  {app.company_name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-slate-900 truncate">{app.company_name}</p>
-                                  <p className="text-xs text-slate-500 truncate">{app.job_title}</p>
-                                </div>
-                              </div>
-                              <span className={`shrink-0 ml-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${cfg.badge}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                                {cfg.label}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      <div className="flex-1 min-h-[250px] w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={pieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {pieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {pieData.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3">
+                        {pieData.map((d) => (
+                          <div key={d.name} className="flex items-center gap-1.5 text-xs text-slate-600">
+                            <span className="w-2 h-2 rounded-full" style={{ background: d.color }} />
+                            <span>{d.name}</span>
+                            <span className="font-semibold text-slate-500">{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-slate-900">Recent applications</h3>
+                    <button
+                      onClick={() => setActiveTab('applications')}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                    >
+                      View all →
+                    </button>
+                  </div>
+                  {applications.length === 0 ? (
+                    <EmptyState
+                      icon={Icons.Inbox}
+                      title="No applications yet"
+                      description="Add your first job application to start tracking."
+                      action={<button onClick={openCreateModal} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">+ New Application</button>}
+                    />
+                  ) : (
+                    <ul className="divide-y divide-slate-100 -mx-2">
+                      {applications.slice(0, 5).map((app) => {
+                        const cfg = getStatus(app.status);
+                        return (
+                          <li key={app.id} className="flex items-center justify-between px-2 py-3 hover:bg-slate-50 rounded-lg transition-colors">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-600 shrink-0">
+                                {app.company_name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-slate-900 truncate">{app.company_name}</p>
+                                <p className="text-xs text-slate-500 truncate">{app.job_title}</p>
+                              </div>
+                            </div>
+                            <span className={`shrink-0 ml-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset ${cfg.badge}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                              {cfg.label}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               </div>
             )}
@@ -580,7 +610,6 @@ export default function Dashboard({ setToken }) {
                   </p>
                 </div>
 
-                {/* Toolbar */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
                   <div className="relative flex-1 max-w-md">
                     <Icons.Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -761,24 +790,9 @@ export default function Dashboard({ setToken }) {
                     </span>
                   </div>
 
-                  <SettingsRow
-                    icon={Icons.Briefcase}
-                    title="Profile"
-                    description="Update your name, email, and photo."
-                    disabled
-                  />
-                  <SettingsRow
-                    icon={Icons.AlertCircle}
-                    title="Notifications"
-                    description="Email reminders for interviews and follow-ups."
-                    disabled
-                  />
-                  <SettingsRow
-                    icon={Icons.File}
-                    title="Data export"
-                    description="Download a copy of all your application data."
-                    disabled
-                  />
+                  <SettingsRow icon={Icons.Briefcase} title="Profile" description="Update your name, email, and photo." disabled />
+                  <SettingsRow icon={Icons.AlertCircle} title="Notifications" description="Email reminders for interviews and follow-ups." disabled />
+                  <SettingsRow icon={Icons.File} title="Data export" description="Download a copy of all your application data." disabled />
                 </div>
 
                 <div className="bg-white rounded-xl border border-rose-200 shadow-sm p-6">
