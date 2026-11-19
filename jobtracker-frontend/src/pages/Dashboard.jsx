@@ -50,6 +50,8 @@ export default function Dashboard({ setToken }) {
   const [loading, setLoading] = useState(true);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
+  const [user, setUser] = useState({ full_name: '', email: '' });
+
   const [activeTab, setActiveTab] = useState('overview');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -86,6 +88,10 @@ export default function Dashboard({ setToken }) {
     navigate('/');
   }, [navigate, setToken]);
 
+  const initials = user.full_name
+    ? user.full_name.trim().substring(0, 2).toUpperCase()
+    : 'ME';
+
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
@@ -93,6 +99,12 @@ export default function Dashboard({ setToken }) {
       if (!token) return handleLogout();
 
       try {
+        const userRes = await fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (userRes.status === 401) return handleLogout();
+        const userData = await userRes.json();
+
         const appRes = await fetch(`${API_URL}/applications/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -105,6 +117,7 @@ export default function Dashboard({ setToken }) {
         const statsData = await statsRes.json();
 
         if (isMounted) {
+          setUser(userData);
           setApplications(appData);
           setStats(statsData);
           setLoading(false);
@@ -145,10 +158,7 @@ export default function Dashboard({ setToken }) {
     setEditingAppId(null);
   };
 
-  const openCreateModal = () => {
-    resetForm();
-    setIsAdding(true);
-  };
+  const openCreateModal = () => { resetForm(); setIsAdding(true); };
 
   const openEditModal = (app) => {
     setEditingAppId(app.id);
@@ -282,6 +292,37 @@ export default function Dashboard({ setToken }) {
     } catch (err) {
       console.error(err);
       showToast('Failed to open resume', 'error');
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    const newName = e.target.full_name.value.trim();
+    if (!newName) {
+      showToast('Name cannot be empty', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ full_name: newName }),
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUser(updatedUser);
+        showToast('Profile updated successfully');
+      } else {
+        showToast('Failed to update profile', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to update profile', 'error');
     }
   };
 
@@ -424,7 +465,7 @@ export default function Dashboard({ setToken }) {
                 className="flex items-center gap-2 p-1 pr-2 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
-                  ME
+                  {initials}
                 </div>
                 <Icons.ChevronDown className="w-4 h-4 text-slate-500 hidden sm:block" />
               </button>
@@ -432,8 +473,12 @@ export default function Dashboard({ setToken }) {
               {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-200/50 py-1 z-50">
                   <div className="px-3 py-2.5 border-b border-slate-100">
-                    <p className="text-sm font-medium text-slate-900">My Account</p>
-                    <p className="text-xs text-slate-500 truncate">Personal workspace</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {user.full_name || 'My Account'}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {user.email || 'Personal workspace'}
+                    </p>
                   </div>
                   <button
                     onClick={() => { setActiveTab('settings'); setIsUserMenuOpen(false); }}
@@ -452,17 +497,16 @@ export default function Dashboard({ setToken }) {
             </div>
           </div>
         </header>
-
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto p-4 md:p-8">
-
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Overview</h2>
+                  <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
+                    Welcome back{user.full_name ? `, ${user.full_name.split(' ')[0]}` : ''}
+                  </h2>
                   <p className="text-sm text-slate-500 mt-1">A quick snapshot of your job search.</p>
                 </div>
-
                 {stats && Object.keys(stats).length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {Object.entries(stats).map(([key, value]) => {
@@ -484,9 +528,7 @@ export default function Dashboard({ setToken }) {
                     })}
                   </div>
                 )}
-
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <h3 className="text-sm font-semibold text-slate-900 mb-4">Pipeline Breakdown</h3>
                     {applications.length === 0 ? (
@@ -541,7 +583,6 @@ export default function Dashboard({ setToken }) {
                         </ResponsiveContainer>
                       </div>
                     )}
-
                     {pieData.length > 0 && (
                       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3">
                         {pieData.map((d) => (
@@ -600,7 +641,6 @@ export default function Dashboard({ setToken }) {
                 </div>
               </div>
             )}
-
             {activeTab === 'applications' && (
               <div className="space-y-4">
                 <div>
@@ -630,9 +670,7 @@ export default function Dashboard({ setToken }) {
                           key={s}
                           onClick={() => setStatusFilter(s)}
                           className={`shrink-0 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                            active
-                              ? 'bg-slate-900 text-white'
-                              : 'text-slate-600 hover:bg-slate-100'
+                            active ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           {label}
@@ -768,7 +806,6 @@ export default function Dashboard({ setToken }) {
                 </div>
               </div>
             )}
-
             {activeTab === 'settings' && (
               <div className="space-y-4 max-w-3xl">
                 <div>
@@ -777,22 +814,54 @@ export default function Dashboard({ setToken }) {
                 </div>
 
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
-                  <div className="p-6 flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold">
-                      ME
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-semibold">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {user.full_name || 'My Account'}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {user.email || '—'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900">My Account</p>
-                      <p className="text-xs text-slate-500">Signed in via JobTracker</p>
-                    </div>
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-600">
-                      Free
-                    </span>
+
+                    <form onSubmit={handleUpdateProfile}>
+                      <Field label="Full Name">
+                        <input
+                          type="text"
+                          name="full_name"
+                          defaultValue={user.full_name || ''}
+                          placeholder="e.g. John Doe"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition"
+                        />
+                      </Field>
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="submit"
+                          className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20"
+                        >
+                          Save Profile
+                        </button>
+                      </div>
+                    </form>
                   </div>
 
-                  <SettingsRow icon={Icons.Briefcase} title="Profile" description="Update your name, email, and photo." disabled />
-                  <SettingsRow icon={Icons.AlertCircle} title="Notifications" description="Email reminders for interviews and follow-ups." disabled />
-                  <SettingsRow icon={Icons.File} title="Data export" description="Download a copy of all your application data." disabled />
+                  <SettingsRow
+                    icon={Icons.AlertCircle}
+                    title="Notifications"
+                    description="Email reminders for interviews and follow-ups."
+                    disabled
+                  />
+                  <SettingsRow
+                    icon={Icons.File}
+                    title="Data export"
+                    description="Download a copy of all your application data."
+                    disabled
+                  />
                 </div>
 
                 <div className="bg-white rounded-xl border border-rose-200 shadow-sm p-6">
@@ -813,7 +882,6 @@ export default function Dashboard({ setToken }) {
           </div>
         </div>
       </main>
-
       {(isAdding || editingAppId) && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -929,7 +997,6 @@ export default function Dashboard({ setToken }) {
           </div>
         </div>
       )}
-
       <div className="fixed bottom-4 right-4 z-[60] space-y-2 pointer-events-none">
         {toasts.map((t) => (
           <div
@@ -953,9 +1020,7 @@ function NavItem({ icon: Icon, label, active, count, onClick }) {
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-        active
-          ? 'bg-indigo-500/10 text-white'
-          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+        active ? 'bg-indigo-500/10 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
       }`}
     >
       <Icon className={`w-4 h-4 ${active ? 'text-indigo-400' : ''}`} />
