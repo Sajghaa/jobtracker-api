@@ -304,7 +304,6 @@ export default function Dashboard({ setToken }) {
     }
   };
 
-  /* ---- Derived data ---- */
   const filteredApplications = applications.filter((app) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q
@@ -319,9 +318,7 @@ export default function Dashboard({ setToken }) {
     statusCounts[s] = applications.filter((a) => a.status === s).length;
   });
 
-  /* ============================================================
-     LOADING SKELETON
-     ============================================================ */
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -350,13 +347,9 @@ export default function Dashboard({ setToken }) {
     );
   }
 
-  /* ============================================================
-     RENDER
-     ============================================================ */
   return (
     <div className="flex h-screen bg-slate-50 font-sans antialiased text-slate-900">
 
-      {/* Mobile sidebar overlay */}
       {isMobileSidebarOpen && (
         <div
           className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
@@ -364,7 +357,6 @@ export default function Dashboard({ setToken }) {
         />
       )}
 
-      {/* ==================== SIDEBAR ==================== */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-slate-950 text-slate-300 flex flex-col transform transition-transform duration-200 md:translate-x-0 ${
           isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -415,10 +407,8 @@ export default function Dashboard({ setToken }) {
         </div>
       </aside>
 
-      {/* ==================== MAIN ==================== */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        {/* HEADER */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -475,11 +465,9 @@ export default function Dashboard({ setToken }) {
           </div>
         </header>
 
-        {/* CONTENT */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto p-4 md:p-8">
 
-            {/* ==================== OVERVIEW ==================== */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div>
@@ -487,7 +475,6 @@ export default function Dashboard({ setToken }) {
                   <p className="text-sm text-slate-500 mt-1">A quick snapshot of your job search.</p>
                 </div>
 
-                {/* Stats grid */}
                 {stats && Object.keys(stats).length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {Object.entries(stats).map(([key, value]) => {
@@ -511,7 +498,7 @@ export default function Dashboard({ setToken }) {
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Status breakdown */}
+     
                   <div className="lg:col-span-1 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <h3 className="text-sm font-semibold text-slate-900 mb-4">Pipeline</h3>
                     {applications.length === 0 ? (
@@ -538,7 +525,6 @@ export default function Dashboard({ setToken }) {
                     )}
                   </div>
 
-                  {/* Recent applications */}
                   <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-sm font-semibold text-slate-900">Recent applications</h3>
@@ -585,7 +571,6 @@ export default function Dashboard({ setToken }) {
               </div>
             )}
 
-            {/* ==================== APPLICATIONS ==================== */}
             {activeTab === 'applications' && (
               <div className="space-y-4">
                 <div>
@@ -631,7 +616,6 @@ export default function Dashboard({ setToken }) {
                   </div>
                 </div>
 
-                {/* Table / Empty state */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   {filteredApplications.length === 0 ? (
                     <EmptyState
@@ -756,7 +740,6 @@ export default function Dashboard({ setToken }) {
               </div>
             )}
 
-            {/* ==================== SETTINGS ==================== */}
             {activeTab === 'settings' && (
               <div className="space-y-4 max-w-3xl">
                 <div>
@@ -817,7 +800,6 @@ export default function Dashboard({ setToken }) {
         </div>
       </main>
 
-      {/* ==================== CREATE / EDIT MODAL ==================== */}
       {(isAdding || editingAppId) && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -905,7 +887,6 @@ export default function Dashboard({ setToken }) {
         </div>
       )}
 
-      {/* ==================== DELETE CONFIRM MODAL ==================== */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -935,7 +916,6 @@ export default function Dashboard({ setToken }) {
         </div>
       )}
 
-      {/* ==================== TOASTS ==================== */}
       <div className="fixed bottom-4 right-4 z-[60] space-y-2 pointer-events-none">
         {toasts.map((t) => (
           <div
@@ -954,9 +934,6 @@ export default function Dashboard({ setToken }) {
   );
 }
 
-/* ============================================================
-   SUB-COMPONENTS
-   ============================================================ */
 function NavItem({ icon: Icon, label, active, count, onClick }) {
   return (
     <button
