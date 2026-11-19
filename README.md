@@ -1,94 +1,38 @@
-# Job Tracker API
+# 🚀 JobTracker.pro
 
+A production-grade, full-stack application designed to help job seekers manage their applications, store resumes, and visualize their job hunt pipeline.
 
-**Live Frontend Application:** [https://jobtracker-frontend-mzcx.onrender.com](https://jobtracker-frontend-mzcx.onrender.com)
-**Live API Documentation (Swagger UI):** [https://jobtracker-api-k18g.onrender.com/docs](https://jobtracker-api-k18g.onrender.com/docs)
+🔗 **[Live Application](https://jobtracker-frontend-mzcx.onrender.com)**
+📚 **[Live API Documentation (Swagger UI)](https://jobtracker-api-k18g.onrender.com/docs)**
 
+![Dashboard Screenshot](./screenshot.png) *(Upload your screenshot to GitHub and name it screenshot.png)*
 
-## 📖 Overview
-JobTracker is a full-stack application designed to help users manage their job hunt. It provides secure authentication, tracking for job applications, resume storage, and live analytics.
+## 🛠️ Tech Stack
+*   **Frontend:** React (Vite), Tailwind CSS, Recharts, React Router
+*   **Backend:** FastAPI (Python 3), SQLAlchemy, Alembic, Pydantic
+*   **Database:** PostgreSQL (Neon Serverless)
+*   **Auth:** OAuth2 with JWT (JSON Web Tokens), Bcrypt
+*   **Deployment:** Render (Frontend & Backend), Neon (Database)
 
-## Technology
+## 🧠 Architecture & Engineering Decisions
+*   **Monorepo Structure:** Frontend and backend are deployed as separate services from a single repository for easier version control.
+*   **Layered Backend:** Separated into `routers`, `models`, `schemas`, and `core` to ensure clean separation of concerns.
+*   **Database Migrations:** Used Alembic to safely apply schema changes (like adding user profiles) across local and production environments without data loss.
+*   **Async Processing:** Utilized FastAPI `BackgroundTasks` to simulate automated follow-up emails without blocking the main HTTP request cycle.
+*   **Protected Routes:** Implemented JWT-based dependency injection to ensure users can only access and modify their own data.
 
-- [FastAPI](https://fastapi.tiangolo.com/) for the API framework
-- [SQLAlchemy](https://www.sqlalchemy.org/) for database access
-- [PostgreSQL](https://www.postgresql.org/) with the Psycopg 2 driver
-- [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) for environment-based configuration
-- [Alembic](https://alembic.sqlalchemy.org/) as a migration dependency
-- `python-jose` and Passlib for JWT and password-hashing utilities
+## ⚙️ Core Features
+- [x] Secure User Registration & Login (JWT)
+- [x] Full CRUD for Job Applications
+- [x] Responsive SaaS Dashboard (Mobile & Desktop)
+- [x] Live Analytics (Aggregated SQL stats + Donut Chart)
+- [x] PDF Resume Upload & Secure Streaming
+- [x] Dynamic User Profiles (Update name, avatar initials)
+- [x] Custom Toast Notifications & Skeleton Loading States
 
-Pinned Python dependencies are listed in [`requirements.txt`](requirements.txt).
-
-## Repository layout
-
-```text
-app/
-  core/
-    config.py       # Application settings loaded from environment variables
-    security.py     # Password and token utility functions
-  db/
-    database.py     # SQLAlchemy engine, base, and session dependency
-  models/
-    user.py         # SQLAlchemy user model
-  routers/          # API routers (not implemented yet)
-  schemas/
-    user.py         # Pydantic user request and response schemas
-  services/         # Business logic (not implemented yet)
-requirements.txt
-```
-
-## Getting started
-
-### Prerequisites
-
-- Python
-- PostgreSQL
-
-### 1. Create and activate a virtual environment
-
-From the repository root:
-
-```powershell
-python -m venv ss_venv
-.\ss_venv\Scripts\Activate.ps1
-```
-
-In a macOS or Linux shell, activate it with:
-
-```bash
-source ss_venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-### 3. Configure environment variables
-
-The settings module reads a `.env` file in the working directory. Provide these values:
-
-| Variable | Description |
-| --- | --- |
-| `PROJECT_NAME` | Application name |
-| `DATABASE_URL` | SQLAlchemy database URL |
-| `SECRET_KEY` | Secret used to sign access tokens |
-| `ALGORITHM` | JWT signing algorithm |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access-token lifetime in minutes |
-
-Example `.env` for a local PostgreSQL database:
-
-```dotenv
-PROJECT_NAME=Job Tracker API
-DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@localhost:5432/jobtracker
-SECRET_KEY=replace-with-a-long-random-secret
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
-
-Replace the example database credentials and secret with your own values. Do not commit `.env` files or real secrets.
-
-## Development status
-
-The repository includes a SQLAlchemy `User` model, Pydantic user schemas, database-session setup, and password/JWT utility functions. It does not yet include a FastAPI application object, route implementations, database migration configuration, or tests. Once an application entry point and routes are added, this README should be updated with the run command, API documentation URLs, and available endpoints.
+## 🚀 Local Setup
+1. Clone the repo
+2. Backend: `cd app && python -m venv venv && pip install -r requirements.txt`
+3. Frontend: `cd jobtracker-frontend && npm install && npm run dev`
+4. Add a `.env` file with your `DATABASE_URL` and `SECRET_KEY`.
+5. Run `alembic upgrade head` to create database tables.
