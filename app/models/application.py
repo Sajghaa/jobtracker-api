@@ -26,3 +26,4 @@ class Application(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     owner = relationship("User", backref="applications")
+    interviews = relationship("Interview", back_populates="application", cascade="all, delete-orphan")
