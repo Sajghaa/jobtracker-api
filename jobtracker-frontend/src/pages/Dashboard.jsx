@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
+/* ============================================================
+   ICONS
+   ============================================================ */
 const IconBase = ({ children, className = 'w-5 h-5', ...rest }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"
     strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...rest}>
@@ -32,8 +35,12 @@ const Icons = {
   Inbox:        (p) => <IconBase {...p}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></IconBase>,
   Sparkles:     (p) => <IconBase {...p}><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4L12 3z"/></IconBase>,
   AlertCircle:  (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></IconBase>,
+  Clock:        (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>,
 };
 
+/* ============================================================
+   STATUS CONFIG
+   ============================================================ */
 const STATUS_CONFIG = {
   applied:      { label: 'Applied',      dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700 ring-blue-600/20',          icon: Icons.Send,         hex: '#3b82f6' },
   interviewing: { label: 'Interviewing', dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700 ring-amber-600/20',       icon: Icons.Calendar,     hex: '#f59e0b' },
@@ -43,6 +50,9 @@ const STATUS_CONFIG = {
 };
 const getStatus = (s) => STATUS_CONFIG[s] || { label: s, dot: 'bg-slate-400', badge: 'bg-slate-50 text-slate-700 ring-slate-600/20', icon: Icons.Inbox, hex: '#94a3b8' };
 
+/* ============================================================
+   COMPONENT
+   ============================================================ */
 export default function Dashboard({ setToken }) {
   const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
@@ -50,6 +60,7 @@ export default function Dashboard({ setToken }) {
   const [loading, setLoading] = useState(true);
   const [triggerFetch, setTriggerFetch] = useState(0);
 
+  // User profile
   const [user, setUser] = useState({ full_name: '', email: '' });
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -57,6 +68,7 @@ export default function Dashboard({ setToken }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const userMenuRef = useRef(null);
 
+  // Form / modal
   const [isAdding, setIsAdding] = useState(false);
   const [editingAppId, setEditingAppId] = useState(null);
   const [company, setCompany] = useState('');
@@ -65,11 +77,25 @@ export default function Dashboard({ setToken }) {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Search + filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Uploading
   const [uploadingId, setUploadingId] = useState(null);
 
+  // 👇 Interview state
+  const [interviewApp, setInterviewApp] = useState(null);
+  const [interviews, setInterviews] = useState([]);
+  const [roundName, setRoundName] = useState('');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [interviewNotes, setInterviewNotes] = useState('');
+  const [loadingInterviews, setLoadingInterviews] = useState(false);
+  const [isSubmittingInterview, setIsSubmittingInterview] = useState(false);
+  // Count per application — populated once the modal has been opened for that app
+  const [interviewCounts, setInterviewCounts] = useState({});
+
+  // Toasts
   const [toasts, setToasts] = useState([]);
   const showToast = useCallback((message, type = 'success') => {
     const id = Date.now() + Math.random();
@@ -77,6 +103,7 @@ export default function Dashboard({ setToken }) {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   }, []);
 
+  // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const API_URL = 'https://jobtracker-api-k18g.onrender.com';
@@ -92,6 +119,7 @@ export default function Dashboard({ setToken }) {
     ? user.full_name.trim().substring(0, 2).toUpperCase()
     : 'ME';
 
+  /* ---- Fetch data (user + apps + stats) ---- */
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
@@ -131,6 +159,7 @@ export default function Dashboard({ setToken }) {
     return () => { isMounted = false; };
   }, [triggerFetch, handleLogout]);
 
+  /* ---- Close user menu on outside click ---- */
   useEffect(() => {
     const handler = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
@@ -141,18 +170,26 @@ export default function Dashboard({ setToken }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  /* ---- Close modals on Esc ---- */
   useEffect(() => {
     const handler = (e) => {
       if (e.key === 'Escape') {
         setIsAdding(false);
         setEditingAppId(null);
         setDeleteTarget(null);
+
+        setInterviewApp(null);
+        setInterviews([]);
+        setRoundName('');
+        setScheduledDate('');
+        setInterviewNotes('');
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
+  /* ---- Form helpers ---- */
   const resetForm = () => {
     setCompany(''); setJobTitle(''); setStatus('applied'); setNotes('');
     setEditingAppId(null);
@@ -170,6 +207,7 @@ export default function Dashboard({ setToken }) {
 
   const closeModal = () => { setIsAdding(false); resetForm(); };
 
+  /* ---- CRUD ---- */
   const handleCreate = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -242,6 +280,7 @@ export default function Dashboard({ setToken }) {
     }
   };
 
+  /* ---- Resume ---- */
   const handleUploadResume = async (e, appId) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -295,6 +334,7 @@ export default function Dashboard({ setToken }) {
     }
   };
 
+  /* ---- Profile update ---- */
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     const token = getToken();
@@ -326,6 +366,109 @@ export default function Dashboard({ setToken }) {
     }
   };
 
+  /* ============================================================
+     INTERVIEWS — Phase 3
+     ============================================================ */
+  const openInterviewsModal = async (app) => {
+    // Reset form + list, then open
+    setInterviewApp(app);
+    setRoundName('');
+    setScheduledDate('');
+    setInterviewNotes('');
+    setInterviews([]);
+    setLoadingInterviews(true);
+
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/applications/${app.id}/interviews`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) return handleLogout();
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setInterviews(data);
+      setInterviewCounts((prev) => ({ ...prev, [app.id]: data.length }));
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load interviews', 'error');
+    } finally {
+      setLoadingInterviews(false);
+    }
+  };
+
+  const closeInterviewsModal = () => {
+    setInterviewApp(null);
+    setInterviews([]);
+    setRoundName('');
+    setScheduledDate('');
+    setInterviewNotes('');
+  };
+
+  const handleCreateInterview = async (e) => {
+    e.preventDefault();
+    if (!interviewApp) return;
+    setIsSubmittingInterview(true);
+
+    const token = getToken();
+    const newInterview = {
+      round_name: roundName,
+      scheduled_date: new Date(scheduledDate).toISOString(),
+      notes: interviewNotes || null,
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/applications/${interviewApp.id}/interviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(newInterview),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setInterviews((prev) => [...prev, created]);
+        setInterviewCounts((prev) => ({
+          ...prev,
+          [interviewApp.id]: (prev[interviewApp.id] || 0) + 1,
+        }));
+        setRoundName('');
+        setScheduledDate('');
+        setInterviewNotes('');
+        showToast('Interview scheduled!');
+      } else {
+        showToast('Failed to schedule interview', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to schedule interview', 'error');
+    } finally {
+      setIsSubmittingInterview(false);
+    }
+  };
+
+  const handleDeleteInterview = async (id) => {
+    if (!interviewApp) return;
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/interviews/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setInterviews((prev) => prev.filter((i) => i.id !== id));
+        setInterviewCounts((prev) => ({
+          ...prev,
+          [interviewApp.id]: Math.max(0, (prev[interviewApp.id] || 0) - 1),
+        }));
+        showToast('Interview removed');
+      } else {
+        showToast('Failed to delete interview', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete interview', 'error');
+    }
+  };
+
+  /* ---- Derived data ---- */
   const filteredApplications = applications.filter((app) => {
     const q = searchQuery.toLowerCase().trim();
     const matchesSearch = !q
@@ -348,6 +491,9 @@ export default function Dashboard({ setToken }) {
     { name: 'Withdrawn',    value: statusCounts.withdrawn,    color: STATUS_CONFIG.withdrawn.hex },
   ].filter((d) => d.value > 0);
 
+  /* ============================================================
+     LOADING SKELETON
+     ============================================================ */
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -376,6 +522,9 @@ export default function Dashboard({ setToken }) {
     );
   }
 
+  /* ============================================================
+     RENDER
+     ============================================================ */
   return (
     <div className="flex h-screen bg-slate-50 font-sans antialiased text-slate-900">
 
@@ -386,6 +535,7 @@ export default function Dashboard({ setToken }) {
         />
       )}
 
+      {/* ==================== SIDEBAR ==================== */}
       <aside
         className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-slate-950 text-slate-300 flex flex-col transform transition-transform duration-200 md:translate-x-0 ${
           isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -436,8 +586,10 @@ export default function Dashboard({ setToken }) {
         </div>
       </aside>
 
+      {/* ==================== MAIN ==================== */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
 
+        {/* HEADER */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shrink-0">
           <div className="flex items-center gap-3">
             <button
@@ -497,8 +649,12 @@ export default function Dashboard({ setToken }) {
             </div>
           </div>
         </header>
+
+        {/* CONTENT */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto p-4 md:p-8">
+
+            {/* ==================== OVERVIEW ==================== */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div>
@@ -507,6 +663,7 @@ export default function Dashboard({ setToken }) {
                   </h2>
                   <p className="text-sm text-slate-500 mt-1">A quick snapshot of your job search.</p>
                 </div>
+
                 {stats && Object.keys(stats).length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {Object.entries(stats).map(([key, value]) => {
@@ -528,6 +685,7 @@ export default function Dashboard({ setToken }) {
                     })}
                   </div>
                 )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                     <h3 className="text-sm font-semibold text-slate-900 mb-4">Pipeline Breakdown</h3>
@@ -641,6 +799,8 @@ export default function Dashboard({ setToken }) {
                 </div>
               </div>
             )}
+
+            {/* ==================== APPLICATIONS ==================== */}
             {activeTab === 'applications' && (
               <div className="space-y-4">
                 <div>
@@ -723,6 +883,7 @@ export default function Dashboard({ setToken }) {
                         <tbody className="divide-y divide-slate-100">
                           {filteredApplications.map((app) => {
                             const cfg = getStatus(app.status);
+                            const interviewCount = interviewCounts[app.id] || 0;
                             return (
                               <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
                                 <td className="px-6 py-4">
@@ -780,6 +941,20 @@ export default function Dashboard({ setToken }) {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <div className="inline-flex items-center gap-1">
+                                    {/* 👇 NEW: Manage Interviews */}
+                                    <button
+                                      onClick={() => openInterviewsModal(app)}
+                                      className="relative p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                                      aria-label="Manage interviews"
+                                      title="Manage interviews"
+                                    >
+                                      <Icons.Calendar className="w-4 h-4" />
+                                      {interviewCount > 0 && (
+                                        <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-1 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                                          {interviewCount}
+                                        </span>
+                                      )}
+                                    </button>
                                     <button
                                       onClick={() => openEditModal(app)}
                                       className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
@@ -806,6 +981,8 @@ export default function Dashboard({ setToken }) {
                 </div>
               </div>
             )}
+
+            {/* ==================== SETTINGS ==================== */}
             {activeTab === 'settings' && (
               <div className="space-y-4 max-w-3xl">
                 <div>
@@ -882,6 +1059,141 @@ export default function Dashboard({ setToken }) {
           </div>
         </div>
       </main>
+
+      {/* ==================== INTERVIEW MODAL ==================== */}
+      {interviewApp && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-slate-900 truncate">
+                  Interviews · {interviewApp.company_name}
+                </h2>
+                <p className="text-xs text-slate-500 truncate">{interviewApp.job_title}</p>
+              </div>
+              <button
+                onClick={closeInterviewsModal}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+                aria-label="Close"
+              >
+                <Icons.X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Left: Interview list */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                  Scheduled Rounds
+                  {interviews.length > 0 && (
+                    <span className="ml-2 text-xs font-medium text-slate-400">
+                      ({interviews.length})
+                    </span>
+                  )}
+                </h3>
+
+                {loadingInterviews ? (
+                  <div className="space-y-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-20 bg-slate-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : interviews.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                      <Icons.Calendar className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      No interviews scheduled yet. Use the form to add a round.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="space-y-2.5">
+                    {interviews.map((i) => (
+                      <li
+                        key={i.id}
+                        className="p-3 bg-slate-50 border border-slate-200 rounded-lg group hover:border-slate-300 transition-colors"
+                      >
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                          <p className="font-semibold text-slate-800 text-sm truncate">
+                            {i.round_name}
+                          </p>
+                          <button
+                            onClick={() => handleDeleteInterview(i.id)}
+                            className="shrink-0 p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded opacity-0 group-hover:opacity-100 transition"
+                            aria-label="Delete interview"
+                          >
+                            <Icons.Trash className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-indigo-600 font-medium inline-flex items-center gap-1">
+                          <Icons.Clock className="w-3 h-3" />
+                          {new Date(i.scheduled_date).toLocaleString(undefined, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </p>
+                        {i.notes && (
+                          <p className="text-xs text-slate-500 mt-2 line-clamp-2">{i.notes}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Right: Add form */}
+              <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 h-fit">
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">Schedule New Round</h3>
+                <form onSubmit={handleCreateInterview} className="space-y-3">
+                  <Field label="Round Name">
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Tech Screen"
+                      value={roundName}
+                      onChange={(e) => setRoundName(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition"
+                    />
+                  </Field>
+                  <Field label="Date & Time">
+                    <input
+                      type="datetime-local"
+                      required
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition"
+                    />
+                  </Field>
+                  <Field label="Notes" hint="Optional">
+                    <textarea
+                      rows={2}
+                      placeholder="Interviewer name, topics..."
+                      value={interviewNotes}
+                      onChange={(e) => setInterviewNotes(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition resize-none"
+                    />
+                  </Field>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingInterview}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm shadow-indigo-600/20"
+                  >
+                    {isSubmittingInterview ? 'Adding…' : 'Add Interview'}
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== CREATE / EDIT MODAL ==================== */}
       {(isAdding || editingAppId) && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -969,6 +1281,7 @@ export default function Dashboard({ setToken }) {
         </div>
       )}
 
+      {/* ==================== DELETE CONFIRM MODAL ==================== */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -997,6 +1310,8 @@ export default function Dashboard({ setToken }) {
           </div>
         </div>
       )}
+
+      {/* ==================== TOASTS ==================== */}
       <div className="fixed bottom-4 right-4 z-[60] space-y-2 pointer-events-none">
         {toasts.map((t) => (
           <div
@@ -1015,6 +1330,9 @@ export default function Dashboard({ setToken }) {
   );
 }
 
+/* ============================================================
+   SUB-COMPONENTS
+   ============================================================ */
 function NavItem({ icon: Icon, label, active, count, onClick }) {
   return (
     <button
