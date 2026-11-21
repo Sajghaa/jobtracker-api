@@ -123,7 +123,12 @@ export default function Login({ setToken }) {
                   placeholder="••••••••"
                 />
               </div>
-
+              <div className="flex items-center justify-between mt-2">
+                <div></div> {/* spacer */}
+                <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                  Forgot password?
+                </Link>
+              </div>
               <button
                 type="submit"
                 disabled={isLoading}
