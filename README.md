@@ -29,6 +29,9 @@ A production-grade, full-stack application designed to help job seekers manage t
 - [x] PDF Resume Upload & Secure Streaming
 - [x] Dynamic User Profiles (Update name, avatar initials)
 - [x] Custom Toast Notifications & Skeleton Loading States
+- [x] Dynamic User Profiles (Update name, avatar initials)
+- [x] Nested Relational Data (Application -> Interviews)
+- [x] **Real Email Notifications** via Resend API(Background Tasks)
 
 ## 🚀 Local Setup
 1. Clone the repo
