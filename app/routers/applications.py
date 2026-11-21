@@ -5,19 +5,44 @@ from sqlalchemy import func
 from typing import List, Optional
 import shutil
 import os
+import resend
 
 from app.db.database import get_db
 from app.models.application import Application, ApplicationStatus
 from app.models.user import User
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationResponse, ApplicationStats
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
+resend.api_key = settings.RESEND_API_KEY
 
 def send_follow_up_reminder(email: str, company: str):
-    import time
-    time.sleep(3)
-    print(f"\n📧 [BACKGROUND TASK] Email sent to {email}: Don't forget to follow up with {company}!\n")
+    """
+    Sends a real email reminder using Resend.
+    Runs in a BackgroundTask so it never blocks the HTTP response.
+    """
+    try:
+        resend.api_key = settings.RESEND_API_KEY
+        params = {
+            "from": "JobTracker <onboarding@resend.dev>",  # Resend's testing address
+            "to": [email],
+            "subject": f"Don't forget to follow up with {company}!",
+            "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <h2 style="color: #4f46e5;">JobTracker Reminder</h2>
+                    <p>Hey there,</p>
+                    <p>You recently applied for a role at <strong>{company}</strong>. It's been a few days—have you followed up?</p>
+                    <p>A quick, polite follow-up email can make a huge difference in landing the interview.</p>
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                    <p style="font-size: 12px; color: #64748b;">Sent with ❤️ by JobTracker.pro</p>
+                </div>
+            """
+        }
+        resend.Emails.send(params)
+        print(f"✅ Email sent successfully to {email} for {company}")
+    except Exception as e:
+        print(f"❌ Failed to send email to {email}: {e}")
 
 @router.post("/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
 def create_application(
