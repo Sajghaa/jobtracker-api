@@ -11,3 +11,5 @@ class  User(Base):
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    reset_token = Column(String, nullable=True)
+    reset_token_expiry = Column(DateTime(timezone=True), nullable=True)
