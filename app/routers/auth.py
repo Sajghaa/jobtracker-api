@@ -74,11 +74,13 @@ def forgot_password(
     # 4. Send the email via BackgroundTask
     reset_link = f"https://jobtracker-frontend-mzcx.onrender.com/reset-password?token={token}"
     
-    def send_reset_email():
+    user_email = user.email 
+    
+    def send_reset_email(target_email: str):
         try:
             params = {
                 "from": "JobTracker <onboarding@resend.dev>",
-                "to": [user.email],
+                "to": [target_email],
                 "subject": "Reset your JobTracker Password",
                 "html": f"""
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
@@ -91,11 +93,11 @@ def forgot_password(
                 """
             }
             resend.Emails.send(params)
-            print(f"✅ Reset email sent to {user.email}")
+            print(f"✅ Reset email sent to {target_email}")
         except Exception as e:
             print(f"❌ Failed to send reset email: {e}")
 
-    background_tasks.add_task(send_reset_email)
+    background_tasks.add_task(send_reset_email, user_email)
     return {"message": "If that email is registered, a reset link has been sent."}
 
 @router.post("/reset-password")
