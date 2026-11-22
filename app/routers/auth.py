@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 import secrets
 import resend
 from fastapi import BackgroundTasks
@@ -101,19 +101,19 @@ def forgot_password(
     return {"message": "If that email is registered, a reset link has been sent."}
 
 @router.post("/reset-password")
+# ─── RESET PASSWORD ───
+@router.post("/reset-password")
 def reset_password(
     request: ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.reset_token == request.token).first()
-    
+
     if not user or not user.reset_token_expiry:
         raise HTTPException(status_code=400, detail="Invalid or missing reset token")
-        
-    if user.reset_token_expiry < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Reset token has expired. Please request a new one.")
 
-    from app.core.security import get_password_hash # import here to avoid circular imports if any
+    if user.reset_token_expiry < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Reset token has expired. Please request a new one.")
     user.hashed_password = get_password_hash(request.new_password)
 
     user.reset_token = None
