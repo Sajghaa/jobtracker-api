@@ -68,7 +68,7 @@ def forgot_password(
     
     # 3. Save token and expiration (15 minutes) to DB
     user.reset_token = token
-    user.reset_token_expiry = datetime.utcnow() + timedelta(minutes=15)
+    user.reset_token_expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
     db.commit()
 
     # 4. Send the email via BackgroundTask
